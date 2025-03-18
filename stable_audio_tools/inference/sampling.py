@@ -225,13 +225,7 @@ def sample(model, x, steps, eta, callback=None, sigma_max=1.0, dist_shift=None, 
     # If we are on the last timestep, output the denoised data
     return pred
 
-# Soft mask inpainting is just shrinking hard (binary) mask inpainting
-# Given a float-valued soft mask (values between 0 and 1), get the binary mask for this particular step
-def get_bmask(i, steps, mask):
-    strength = (i+1)/(steps)
-    # convert to binary mask
-    bmask = torch.where(mask<=strength,1,0)
-    return bmask
+
 
 def make_cond_model_fn(model, cond_fn):
     def cond_model_fn(x, sigma, **kwargs):
@@ -325,50 +319,3 @@ def sample_k(
     else:
         raise ValueError(f"Unknown sampler type {sampler_type}")
 
-# Uses discrete Euler sampling for rectified flow models
-# init_data is init_audio as latents (if this is latent diffusion)
-# For sampling, set both init_data and mask to None
-# For variations, set init_data 
-# For inpainting, set both init_data & mask 
-def sample_rf(
-        model_fn, 
-        noise, 
-        init_data=None,
-        steps=100, 
-        sampler_type="euler",
-        sigma_max=1,
-        device="cuda", 
-        callback=None, 
-        cond_fn=None,
-        **extra_args
-    ):
-
-    if sigma_max > 1:
-        sigma_max = 1
-
-    if cond_fn is not None:
-        denoiser = make_cond_model_fn(denoiser, cond_fn)
-
-    if init_data is not None:
-
-        if "dist_shift" in extra_args:
-            dist_shift = extra_args["dist_shift"]
-
-            # Shift the sigma_max value for init audio to account for the time shift in the sampler
-            if sigma_max < 1:
-                sigma_max = dist_shift.time_shift(torch.tensor(sigma_max), init_data.shape[-1]).item()
-
-        # VARIATION (no inpainting)
-        # Interpolate the init data and the noise for init audio
-        x = init_data * (1 - sigma_max) + noise * sigma_max
-    else:
-        # SAMPLING
-        # set the initial latent to noise
-        x = noise
-
-    if sampler_type == "euler":
-        return sample_discrete_euler(model_fn, x, steps, sigma_max, callback=callback, **extra_args)
-    elif sampler_type == "rk4":
-        return sample_rk4(model_fn, x, steps, sigma_max, callback=callback, **extra_args)
-    elif sampler_type == "dpmpp":
-        return sample_flow_dpmpp(model_fn, x, steps, sigma_max, callback=callback, **extra_args)

@@ -13,7 +13,6 @@ from torch.nn import functional as F
 from torchaudio import transforms as T
 
 from ..interface.aeiou import audio_spectrogram_image
-from ..inference.generation import generate_diffusion_cond, generate_diffusion_cond_inpaint, generate_diffusion_uncond
 from ..models.factory import create_model_from_config
 from ..models.pretrained import get_pretrained_model
 from ..models.utils import load_ckpt_state_dict
@@ -412,7 +411,7 @@ def create_ui(model_config_path=None, ckpt_path=None, pretrained_name=None, pret
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     _, model_config = load_model(model_config, ckpt_path, pretrained_name=pretrained_name, pretransform_ckpt_path=pretransform_ckpt_path, model_half=model_half, device=device)
     
-    if model_type == "diffusion_cond" or model_type == "diffusion_cond_inpaint":
+    if model_type == "diffusion_cond":
         ui = create_diffusion_cond_ui(model_config, model, in_model_half=model_half)
     elif model_type == "diffusion_uncond":
         ui = create_diffusion_uncond_ui(model_config)

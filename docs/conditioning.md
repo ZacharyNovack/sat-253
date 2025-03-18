@@ -22,7 +22,7 @@ This kind of conditioning is currently only supported by Transformer-based model
 Signals used for prepend conditioning should be of the shape `[batch, sequence, channels]`.
 
 ## Input concatenation
-Input concatenation applies a spatial conditioning signal to the model that correlates in the sequence dimension with the model's input, and is of the same length. The conditioning signal will be concatenated with the model's input data along the channel dimension. This can be used for things like inpainting information, melody conditioning, or for creating a diffusion autoencoder.
+Input concatenation applies a spatial conditioning signal to the model that correlates in the sequence dimension with the model's input, and is of the same length. The conditioning signal will be concatenated with the model's input data along the channel dimension. This can be used for things like melody conditioning, or for creating a diffusion autoencoder.
 
 Signals used for input concatenation conditioning should be of the shape `[batch, channels, sequence]` and must be the same length as the model's input.
 
