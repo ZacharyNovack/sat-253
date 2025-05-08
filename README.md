@@ -151,7 +151,3 @@ The following properties are defined in the top level of the model configuration
 
 ## Dataset config
 `stable-audio-tools` currently supports two kinds of data sources: local directories of audio files, and WebDataset datasets stored in Amazon S3. More information can be found in [the dataset config documentation](docs/datasets.md)
-
-# Todo
-- [ ] Add troubleshooting section
-- [ ] Add contribution guidelines 
