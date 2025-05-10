@@ -1,153 +1,172 @@
-# stable-audio-tools
-Training and inference code for audio generation models
+# Homework 4
 
-# Install
+Welcome to Homework 4! As large-scale generative models are intractable to train by yourselves, the goal of this homework is to understand how we can *sample* from pre-trained from generation models, as well as apply a number of inference-time tricks for creative controllable generation. Here, we'll use Stable Audio Open (SAO) as our case-study pre-trained model. Note that each question in the assignment builds on previous questions, so it is recommended that you complete it **in order**.
 
-The library can be installed from PyPI with:
-```bash
-$ pip install stable-audio-tools
+## Setup Instructions
+To begin this homework, you’ll need to set up your environment and obtain the necessary files. Follow these steps carefully. Ensure you have Git installed for cloning the repository and a Python environment manager (such as Anaconda) to manage dependencies.
+
+#### 1. Clone the Provided Repository
+Use the following command in your terminal to download the homework files from the provided GitHub repository:
+```
+git clone https://github.com/ZacharyNovack/sat-253.git
+```
+This will create a folder named sat-253 containing all the necessary files, including the `homework4_stub.ipynb` template for the quizzes.
+
+#### 2. Create a New Python Environment
+To avoid conflicts with other projects, create a fresh Python environment. If you’re using Anaconda, run these commands:
+```
+conda create -n hw4
+conda activate hw4
+```
+If you prefer `virtualenv` or another tool, you can use it instead (e.g., `python -m venv hw4` and `source hw4/bin/activate` on Unix-based systems).
+
+#### 3. Install required packages
+With the `hw4` environment active, install the following packages using `pip`.
+These libraries are essential for completing the quizzes:
+
+```
+pip install torch torchaudio torchvision einops tqdm safetensors matplotlib
+pip install huggingface_hub einops_exts pytorch_lightning wandb k_diffusion alias_free_torch transformers
 ```
 
-To run the training scripts or inference code, you'll want to clone this repository, navigate to the root, and run:
-```bash
-$ pip install .
+Additionally, make sure you install the sat-253 directory directly as a package. In your terminal, if you are not already in the folder, run `cd sat-253`, and then run the install command:
+```
+pip install -e .
 ```
 
-# Requirements
-Requires PyTorch 2.0 or later for Flash Attention support
+If you encounter installation errors, verify your internet connection, ensure `pip` is up-to-date (`pip install --upgrade pip`), or consult the package documentation.
 
-Development for the repo is done in Python 3.8.10
+#### 4. Log into Hugging face
 
-# Interface
-
-A basic Gradio interface is provided to test out trained models. 
-
-For example, to create an interface for the [`stable-audio-open-1.0`](https://huggingface.co/stabilityai/stable-audio-open-1.0) model, once you've accepted the terms for the model on Hugging Face, you can run:
-```bash
-$ python3 ./run_gradio.py --pretrained-name stabilityai/stable-audio-open-1.0
+In order to access the pre-trained weights of SAO, you must make a HuggingFace account and generate a secure token. To do so, use the following command in the terminal and paste your token.
+```
+huggingface-cli login
 ```
 
-The `run_gradio.py` script accepts the following command line arguments:
+## Quizzes
+This homework consists of 5 quizzes that test your ability to implement code using the provided tools and libraries. The starting template is located in the `homework4_stub.ipynb` file within the cloned repository.
 
-- `--pretrained-name`
-  - Hugging Face repository name for a Stable Audio Tools model
-  - Will prioritize `model.safetensors` over `model.ckpt` in the repo
-  - Optional, used in place of `model-config` and `ckpt-path` when using pre-trained model checkpoints on Hugging Face
-- `--model-config`
-  - Path to the model config file for a local model
-- `--ckpt-path`
-  - Path to unwrapped model checkpoint file for a local model
-- `--pretransform-ckpt-path` 
-  - Path to an unwrapped pretransform checkpoint, replaces the pretransform in the model, useful for testing out fine-tuned decoders
-  - Optional
-- `--share`
-  - If true, a publicly shareable link will be created for the Gradio demo
-  - Optional
-- `--username` and `--password`
-  - Used together to set a login for the Gradio demo
-  - Optional
-- `--model-half`
-  - If true, the model weights to half-precision
-  - Optional
+- Locate and Open: Find the `homework4_stub.ipynb` file in the `sat-253` directory.
+- Implement Solutions: Follow the instructions to complete the code for all 5 quizzes.
+- Verify: Test your code to ensure it runs correctly and meets the requirements.
+- Submit: Once finished, convert your notebook file to a `.py` file, and submit the file according to the submission instructions.
 
-# Training
+<!-- ### Q1. Implement the `to_d()` and `sample_euler()` function. -->
+### Q1. Develope a Simple Diffusion Sampler
 
-## Prerequisites
-Before starting your training run, you'll need a model config file, as well as a dataset config file. For more information about those, refer to the Configurations section below
+Diffusion models are unique among generative models in that training and inference look *drastically* different from an algorithmic perspective. As such, even given a pre-trained diffusion model, we can't repurpose its training code for generation, and instead need to design our inference algorithms, referred to as diffusion *samplers*, seperately. Here, you will implement a simple diffusion sampler, that will proceed in two subparts: (1) converting your diffusion output to the *score* of the diffusion process, and (2) using this in your sampler.
 
-The training code also requires a Weights & Biases account to log the training outputs and demos. Create an account and log in with:
-```bash
-$ wandb login
-```
+#### Q1-1. `to_d()` function
+As mentioned in lecture, though diffusion models are equivalent to the class of "score matching" models (where our model directly outputs the estimated score of the distribution), they are often trained under different parameterizations, such as predicting the clean output (x-prediction), predicting the noise ($\epsilon$-prediction), or something in between (v-prediction). At a high level, you can think of the score as the *derivative* of the generation process, essentially giving you a *direction* to move your generation to make it more "data-like", and thus these gradient directions are quite important for sampling!
 
-## Start training
-To start a training run, run the `train.py` script in the repo root with:
-```bash
-$ python3 ./train.py --dataset-config /path/to/dataset/config --model-config /path/to/model/config --name harmonai_train
-```
+For our purposes, SAO uses x-prediction, which means its output is an estimate of the final denoised generation. Thus, your task is to implement the `to_d` function, which converts the x-prediction SAO output to the score.
 
-The `--name` parameter will set the project name for your Weights and Biases run.
+##### Inputs
+- `x`: A PyTorch tensor representing the current noisy intermediate state of the sampling process, which is the input to SAO.
+- `sigma`: A scalar or tensor representing the current noise level in the diffusion process.
+- `denoised`: A PyTorch tensor of the same shape as `x`, representing the model's prediction of the clean (denoised) sample at the current step.
 
-## Training wrappers and model unwrapping
-`stable-audio-tools` uses PyTorch Lightning to facilitate multi-GPU and multi-node training. 
+##### Implementation Instructions
+- This function should return an estimate of the score of the distribution, which is the same shape as `x` and `denoised`.
+- Hint: this function should only be a 1-liner! Think about what was discussed in lecture regarding Tweedie's formula and the connection between denoising and score matching. 
 
-When a model is being trained, it is wrapped in a "training wrapper", which is a `pl.LightningModule` that contains all of the relevant objects needed only for training. That includes things like discriminators for autoencoders, EMA copies of models, and all of the optimizer states.
+#### Q1-2. `simple_sample()` function
 
-The checkpoint files created during training include this training wrapper, which greatly increases the size of the checkpoint file.
+Now given your `to_d` function, the goal is now to implement the simplest possible sampler for diffusion models, which we'll call `simple_sample`. Since we have a way to  estimate the "direction" to move at any given noise level, sampling proceeds as follows:
 
-`unwrap_model.py` in the repo root will take in a wrapped model checkpoint and save a new checkpoint file including only the model itself.
+1. We first start with full gaussian noise
+2. We pass our noisy state into the diffusion model, along with the noise level and any extra conditioning arguments, which will return our estimate of the clean denoised output `denoised`.
+3. Then, we use `to_d` to convert this to our estimate of the score.
+4. Next, we calculate the **amount** that we which to step given this direction, which should be based on the current noise level and the next immediate noise level.
+5. Given this stepsize, we update our noisy state using our score scaled by this stepsize.
+6. Repeat steps 2-5 for some prespecified number of steps to get our final output.
 
-That can be run with from the repo root with:
-```bash
-$ python3 ./unwrap_model.py --model-config /path/to/model/config --ckpt-path /path/to/wrapped/ckpt --name model_unwrap
-```
 
-Unwrapped model checkpoints are required for:
-  - Inference scripts
-  - Using a model as a pretransform for another model (e.g. using an autoencoder model for latent diffusion)
-  - Fine-tuning a pre-trained model with a modified configuration (i.e. partial initialization)
+##### Inputs
+- `model`: The denoiser model SAO.
+- `x`: A PyTorch tensor consisting of full Gaussian Noise, which will be updated throughout generation.
+- `sigmas`: A list of scalar noise levels in descending order (i.e. `sigmas[i+1] < sigmas[i]`).
+- `extra_args`: A dictionary of extra conditions and arguments to be passed to the model.
 
-## Fine-tuning
-Fine-tuning a model involves continuning a training run from a pre-trained checkpoint. 
+##### Implementation Instructions
+- We have given you reasonable starter code for this function, where your main task is to implement everything inside the for loop. 
+- Note: The function signature of SAO is `model(x: torch.Tensor, sigma: torch.Tensor, **extra_args)`, so you'll want to follow this and scale each noise level `sigmas[i]` by the `s_in` tensor provided when passing it into the model in order to convert it from a float to a torch.Tensor.
+- Like the previous question, this does not need to be particularly verbose! An efficient implementation can take as few as 4 lines of code inside the for loop.
 
-To continue a training run from a wrapped model checkpoint, you can pass in the checkpoint path to `train.py` with the `--ckpt-path` flag.
+### Q2. Implement the `generate_inpainting_mask()` function.
 
-To start a fresh training run using a pre-trained unwrapped model, you can pass in the unwrapped checkpoint to `train.py` with the `--pretrained-ckpt-path` flag.
+Now that we have a our `simple_sample` function, we can modify it in a number of ways for creative, training-free control. First, we'll explore **inpainting**, or the task of taking existing audio, masking out some portion of the middle, and then filling it in with our model! First off, we need to make a helper function to generate these masks.
 
-## Additional training flags
+Build the `generate_inpainting_mask()` function, which creates an inpainting mask for audio data, specifying regions of an audo waveform to be "inpainted".
 
-Additional optional flags for `train.py` include:
-- `--config-file`
-  - The path to the defaults.ini file in the repo root, required if running `train.py` from a directory other than the repo root
-- `--pretransform-ckpt-path`
-  - Used in various model types such as latent diffusion models to load a pre-trained autoencoder. Requires an unwrapped model checkpoint.
-- `--save-dir`
-  - The directory in which to save the model checkpoints
-- `--checkpoint-every`
-  - The number of steps between saved checkpoints.
-  - *Default*: 10000
-- `--batch-size`
-  - Number of samples per-GPU during training. Should be set as large as your GPU VRAM will allow.
-  - *Default*: 8
-- `--num-gpus`
-  - Number of GPUs per-node to use for training
-  - *Default*: 1
-- `--num-nodes`
-  - Number of GPU nodes being used for training
-  - *Default*: 1
-- `--accum-batches`
-  - Enables and sets the number of batches for gradient batch accumulation. Useful for increasing effective batch size when training on smaller GPUs.
-- `--strategy`
-  - Multi-GPU strategy for distributed training. Setting to `deepspeed` will enable DeepSpeed ZeRO Stage 2.
-  - *Default*: `ddp` if `--num_gpus` > 1, else None
-- `--precision`
-  - floating-point precision to use during training
-  - *Default*: 16
-- `--num-workers`
-  - Number of CPU workers used by the data loader
-- `--seed`
-  - RNG seed for PyTorch, helps with deterministic training
+#### Inputs
+- `reference`: A PyTorch tensor representing the reference **latent** audio to be inpainted.
+- `mask_start_s`: A float representing the start time of the mask in *seconds*
+- `mask_end_s`: A float representing the end time of the mask in *seconds*
 
-# Configurations
-Training and inference code for `stable-audio-tools` is based around JSON configuration files that define model hyperparameters, training settings, and information about your training dataset.
+#### Constants Provided
+- `SAMPLE_RATE` : A global constant representing the audio sample rate
+- `model.pretransform.downsampling_ratio`: This is the factor that the audio is downsampled through SAOs encoder to its latent representation. We need this as all our masking occurs in the the latent space, so we need to account for the latent frame rate of SAO's autoencoder.
 
-## Model config
-The model config file defines all of the information needed to load a model for training or inference. It also contains the training configuration needed to fine-tune a model or train from scratch.
+#### Implementation Instructions
+- your function should return a mask `mask` that is the same shape as `reference`, where `mask=1` everywhere that we want to inpaint (i.e. from `mask_start_s` to `mask_end_s`) and `mask=0` everywhere else.
+- you will need to combine `mask_start_s`/`mask_end_s` with `SAMPLE_RATE` and `model.pretransform.downsampling_ratio` to set the correct indices of the mask.
 
-The following properties are defined in the top level of the model configuration:
+### Q3. Implement `simple_sample_inpaint()` function.
 
-- `model_type`
-  - The type of model being defined, currently limited to one of `"autoencoder", "diffusion_uncond", "diffusion_cond", "diffusion_autoencoder", "lm"`.
-- `sample_size`
-  - The length of the audio provided to the model during training, in samples. For diffusion models, this is also the raw audio sample length used for inference.
-- `sample_rate`
-  - The sample rate of the audio provided to the model during training, and generated during inference, in Hz.
-- `audio_channels`
-  - The number of channels of audio provided to the model during training, and generated during inference. Defaults to 2. Set to 1 for mono.
-- `model`
-  - The specific configuration for the model being defined, varies based on `model_type`
-- `training`
-  - The training configuration for the model, varies based on `model_type`. Provides parameters for training as well as demos.
+Next, we'll implement inpainting. The idea here is that we can reuse our simple sampler with some small modifications. Notably, after we do the sampling step and update our noisy state, we want to do two things:
+1. Make sure that we scale whatever is coming from our reference to the same noise level, which is equivalent to adding a specific amount of gaussian noise at each step
+2. Given our synthetically noisy reference, we want to use the mask to set `x` such that in the inpainting range `x` stays unchanged, but outside the range `x` is set to our noisy reference.
 
-## Dataset config
-`stable-audio-tools` currently supports two kinds of data sources: local directories of audio files, and WebDataset datasets stored in Amazon S3. More information can be found in [the dataset config documentation](docs/datasets.md)
+The `simple_sample_inpaint()` function is the implementation of the simple sampling method for inpainting.
+
+#### Inputs
+- `model`: The stable audio open model that we're using
+- `x`: A PyTorch tensor representing the initial noisy sample
+- `sigmas`: A PyTorch tensor of noise levels
+- `reference`: The encoded reference audio.
+- `mask`: The mask that we created with the  `generate_inpainting_mask` function.
+
+#### Implementation Instructions
+- Note: this is again a small modification on your existing simple sample code, do not overthink it!
+- Think about what it means to add noise at the "right" noise level, and how to do a mask operation.
+
+
+### Q4. Variable Strength Impainting
+We now have a working inpainting function! As we can see, when playing around with different prompts and reference audios, the outut around the boundaries of our inpainting mask can feel abrupt and unnatural. To potentially fix this, next you will modify your inpainting function to only apply the inpainting operation on a specific *range* of steps.
+
+The `simple_sample_variable_inpaint()` function is the implementation of the simple sampling method for inpainting, with variable inpainting amount.
+
+#### Inputs
+- `model`: The stable audio open model that we're using
+- `x`: A PyTorch tensor representing the initial noisy sample
+- `sigmas`: A PyTorch tensor of noise levels
+- `reference`: The encoded reference audio.
+- `mask`: The mask that we created with the  `generate_inpainting_mask` function.
+- `paint_start`: An integer index denoting the  step number to start apply the inpainting function.
+- `paint_end`: An integer index denoting the step number to stop apply the inpainting function.
+
+#### Implementation Instructions
+- Note: this is again a small modification on your existing simple sample inpaint code, do not overthink it!
+- This function should operate identically to your simple sample inpaint function when `paint_start=0` and `paint_end=len(sigmas)-1` (i.e. applying the inpainting operation for all of sampling).
+
+### Q5. Style Transfer
+
+Finally, we will explore a simple version of style transfer with diffusion models. The goal here is to "transfer" the style from one reference audio to our generation. This ends up being very similar to inpainting, with the exception that this is a *global* operation (i.e. no mask is needed), and is more concerned with the *strength* of the transfer operation. Specifically, we want to perform style transfer by taking the reference audio, adding noise to it up to some level, and then running inference from this noisy reference point as normal.
+
+The `simple_sample_style_transfer()` function is the implementation of the simple sampling method for style transfer.
+
+#### Inputs
+- `model`: The stable audio open model that we're using
+- `sigmas`: A PyTorch tensor of noise levels
+- `reference`: The encoded reference audio.
+- `transfer_strength`: A float value from 0 to 1, where 0 means no transfer occurs (i.e. the generation ignores the reference) and 1 means maximum transfer (i.e. the output should just be the reference).
+
+#### Implementation Instructions
+- There are a couple ways to implement this, either using your `simple_sample_variable_inpaint` or your `simple_sample` function.
+- You will need to conver your transfer_strength from a 0-1 float to something that can index the sigmas tensor to map it to the right noise level.
+
+
+## Submission Instructions
+
+To submit your homework, first convert your `homework4_stub.ipynb` file into a `homework4_stub.py` file. NOTE: before converting your notebook into a python file, MAKE SURE TO COMMENT OUT ALL `ipd` CALLS IN YOUR FILE, as this will break the importing to the answer generation file. Additionally, it will be helpful to comment out all testing blocks in your code before you use the runner, as these will slow down the import process considerably. Then navigate to the `runner.ipynb` file (in the sat-253 directory) and run the whole notebook, which should import your written functions from `homework4_stub.py` and generate an `homework4.pkl` file. Submit both this file, and your `homework4_stub.py` file on gradescope.
