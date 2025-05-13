@@ -3,7 +3,7 @@
 Welcome to Homework 4! As large-scale generative models are intractable to train by yourselves, the goal of this homework is to understand how we can *sample* from pre-trained from generation models, as well as apply a number of inference-time tricks for creative controllable generation. Here, we'll use Stable Audio Open (SAO) as our case-study pre-trained model. Note that each question in the assignment builds on previous questions, so it is recommended that you complete it **in order**.
 
 ## Setup Instructions
-This homework can be done either locally, on Google Colab, or on datahub. We *highly* recommend to use colab/datahub rather than local developement, as a GPU will significantly accelerate your ability to iterate on this assignment quickly.
+This homework can be done either locally, on Google Colab, or on datahub. We recommend to use colab/datahub rather than local developement, as a GPU will accelerate your ability to iterate on this assignment quickly. Note that in order to ensure compute equity, a GPU is *not* necessary for this assignment, and for this to be a case, all testing and answer generation will be done IN THE LATENT SPACE OF THE AUTOENCODER. While you are free to decode the latents into audio, we do not recommend this if you do not have a GPU, as this can be exceedingly slow on CPU.
 
 To begin this homework, you’ll need to set up your environment and obtain the necessary files. Follow these steps carefully. Ensure you have Git installed for cloning the repository and a Python environment manager (such as Anaconda) to manage dependencies.
 
@@ -42,7 +42,8 @@ If you encounter installation errors, verify your internet connection, ensure `p
 
 #### 4. Log into Hugging face
 
-In order to access the pre-trained weights of SAO, you must make a HuggingFace account and generate a secure token. To do so, use the following command in the terminal and paste your token.
+You must sign in to [Hugging Face](https://huggingface.co/) and request access to the (Stable Audio Open)[https://huggingface.co/stabilityai/stable-audio-open-1.0] model. After that, run huggingface-cli login in your terminal:
+
 ```
 huggingface-cli login
 ```
@@ -55,7 +56,7 @@ To run this on google colab, you will first need to copy the repo to your person
 
 #### 2. Log into Hugging face
 
-In order to access the pre-trained weights of SAO, you must make a HuggingFace account and generate a secure token. Once you make your secure token, you will be able to directly upload it to google colab by clicking on the key icon on the left-hand side of the screen in google colab. There, you will be able to add your secret key, which should be titled `HF_TOKEN`.
+You must sign in to [Hugging Face](https://huggingface.co/) and request access to the (Stable Audio Open)[https://huggingface.co/stabilityai/stable-audio-open-1.0] model. In order to access the pre-trained weights of SAO, you must make a HuggingFace account and generate a secure token. Once you make your secure token, you will be able to directly upload it to google colab by clicking on the key icon on the left-hand side of the screen in google colab. There, you will be able to add your secret key, which should be titled `HF_TOKEN`.
 
 #### 3. Run colab-specific codeblock
 
