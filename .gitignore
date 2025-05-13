@@ -162,3 +162,5 @@ cython_debug/
 *.ckpt
 # *.wav
 wandb/*
+
+homework4_stub_answers.ipynb

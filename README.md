@@ -3,7 +3,11 @@
 Welcome to Homework 4! As large-scale generative models are intractable to train by yourselves, the goal of this homework is to understand how we can *sample* from pre-trained from generation models, as well as apply a number of inference-time tricks for creative controllable generation. Here, we'll use Stable Audio Open (SAO) as our case-study pre-trained model. Note that each question in the assignment builds on previous questions, so it is recommended that you complete it **in order**.
 
 ## Setup Instructions
+This homework can be done either locally, on Google Colab, or on datahub. We *highly* recommend to use colab/datahub rather than local developement, as a GPU will significantly accelerate your ability to iterate on this assignment quickly.
+
 To begin this homework, you’ll need to set up your environment and obtain the necessary files. Follow these steps carefully. Ensure you have Git installed for cloning the repository and a Python environment manager (such as Anaconda) to manage dependencies.
+
+### Local Setup
 
 #### 1. Clone the Provided Repository
 Use the following command in your terminal to download the homework files from the provided GitHub repository:
@@ -42,6 +46,20 @@ In order to access the pre-trained weights of SAO, you must make a HuggingFace a
 ```
 huggingface-cli login
 ```
+
+### Colab Setup
+
+#### 1. Copy Repo to your personal drive
+
+To run this on google colab, you will first need to copy the repo to your personal google drive. To do so, first download the repo `sat-253` folder (either from the class google drive or the github), and then re-upload this on your own google drive.
+
+#### 2. Log into Hugging face
+
+In order to access the pre-trained weights of SAO, you must make a HuggingFace account and generate a secure token. Once you make your secure token, you will be able to directly upload it to google colab by clicking on the key icon on the left-hand side of the screen in google colab. There, you will be able to add your secret key, which should be titled `HF_TOKEN`.
+
+#### 3. Run colab-specific codeblock
+
+In `homework4_stub.ipynb` AND in `runner.ipynb`, there will be a colab-specific codeblock that you must run in order to set up your environment and ensure all paths work as planned. You must uncomment this block to run the notebook.
 
 ## Quizzes
 This homework consists of 5 quizzes that test your ability to implement code using the provided tools and libraries. The starting template is located in the `homework4_stub.ipynb` file within the cloned repository.
