@@ -7,6 +7,9 @@ This homework can be done either locally, on Google Colab, or on datahub. We rec
 
 To begin this homework, you’ll need to set up your environment and obtain the necessary files. Follow these steps carefully. Ensure you have Git installed for cloning the repository and a Python environment manager (such as Anaconda) to manage dependencies.
 
+## Note on Non-Determinism
+Based on feedback from students, we have decided to enforce that `runner.ipynb` MUST BE RUN ON ***CPU***, not GPU. There are a number of issues with PyTorch non-determinism between CPU, so in the business of keeping everything consistent for the sake of the autograder, please focus only on getting your code to run on CPU for this assignment. Ignore all other mentions of GPUs in the readme.
+
 ### Local Setup
 
 #### 1. Clone the Provided Repository
