@@ -350,10 +350,10 @@ class T5Conditioner(Conditioner):
 
         self.model.eval()
             
-        with torch.cuda.amp.autocast(dtype=torch.float16) and torch.set_grad_enabled(self.enable_grad):
-            embeddings = self.model(
-                input_ids=input_ids, attention_mask=attention_mask
-            )["last_hidden_state"]    
+        # with torch.cuda.amp.autocast(enabled=False) and torch.set_grad_enabled(self.enable_grad):
+        embeddings = self.model(
+            input_ids=input_ids, attention_mask=attention_mask
+        )["last_hidden_state"]    
 
         # Cast embeddings to same type as proj_out, unless proj_out is Identity
         if not isinstance(self.proj_out, nn.Identity):

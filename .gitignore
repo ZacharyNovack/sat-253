@@ -164,3 +164,5 @@ cython_debug/
 wandb/*
 
 homework4_stub_answers.ipynb
+homework4_stub.py
+homework4.pkl
